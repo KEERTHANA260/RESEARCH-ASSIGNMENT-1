@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Registration Lookup Lab</title>
+<meta name="description" content="Interactive lab comparing linear, binary and hash search for student registration numbers, from 1,000 to 1,000,000 records.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Design and Analysis of Algorithms · Assignment 1</p>
+    <h1>Registration Lookup Lab</h1>
+    <p class="lede">Find a student by registration number with three algorithms side by side. Generate 1,000 to 1,000,000 records, compare comparisons and timings, and test the 50,000 searches per hour scenario.</p>
+  </header>
+
+  <section class="panel" aria-labelledby="ds-h">
+    <div class="row">
+      <h2 id="ds-h" style="flex:1 1 220px">Student database</h2>
+      <label class="f" for="ds-size">Records
+        <select id="ds-size">
+          <option value="1000">1,000</option>
+          <option value="10000">10,000</option>
+          <option value="100000" selected>100,000</option>
+          <option value="1000000">1,000,000</option>
+        </select>
+      </label>
+      <button id="ds-build" class="primary">Build database</button>
+    </div>
+    <p class="status" id="ds-status" role="status">Building…</p>
+    <div class="stats" id="ds-stats"></div>
+    <p class="hint">Registration numbers are random unique 9-digit numbers, stored unsorted. Binary search needs them sorted and hash search needs a table, so both preprocessing steps are timed here and counted in every comparison.</p>
+  </section>
+
+  <div class="tabs" role="tablist" aria-label="Lab sections">
+    <button role="tab" id="t-lookup" aria-selected="true" aria-controls="p-lookup" data-tab="lookup">Lookup</button>
+    <button role="tab" id="t-benchmark" aria-selected="false" aria-controls="p-benchmark" data-tab="benchmark">Benchmark</button>
+    <button role="tab" id="t-load" aria-selected="false" aria-controls="p-load" data-tab="load">Day-4 load</button>
+    <button role="tab" id="t-theory" aria-selected="false" aria-controls="p-theory" data-tab="theory">Theory check</button>
+  </div>
+
+  <!-- LOOKUP -->
+  <section id="p-lookup" role="tabpanel" aria-labelledby="t-lookup" class="panel">
+    <div class="row">
+      <label class="f" for="key-in" style="flex:1 1 220px">Registration number
+        <input id="key-in" class="mono" type="text" inputmode="numeric" autocomplete="off" maxlength="9" placeholder="9 digits">
+      </label>
+      <button id="go" class="primary">Search</button>
+    </div>
+    <div class="cases" aria-label="Example cases">
+      <button data-case="random">Random student</button>
+      <button data-case="missing">Random missing number</button>
+      <button data-case="first">First stored (linear best)</button>
+      <button data-case="last">Last stored (linear worst)</button>
+      <button data-case="middle">Middle of sorted (binary best)</button>
+    </div>
+    <div id="lk-msg"></div>
+    <div class="cards" id="lk-cards"></div>
+    <div id="lk-record"></div>
+    <div id="lk-trace"></div>
+  </section>
+
+  <!-- BENCHMARK -->
+  <section id="p-benchmark" role="tabpanel" aria-labelledby="t-benchmark" class="panel" hidden>
+    <div class="row">
+      <fieldset style="border:0;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:6px 14px;min-width:0">
+        <legend class="note" style="padding:0;margin-bottom:6px">Database sizes</legend>
+        <label class="note"><input type="checkbox" name="bsz" value="1000" checked> 1,000</label>
+        <label class="note"><input type="checkbox" name="bsz" value="10000" checked> 10,000</label>
+        <label class="note"><input type="checkbox" name="bsz" value="100000" checked> 100,000</label>
+        <label class="note"><input type="checkbox" name="bsz" value="1000000" checked> 1,000,000</label>
+      </fieldset>
+      <label class="f" for="bq">Searches per size
+        <input id="bq" type="number" min="200" max="20000" step="100" value="2000" style="width:120px">
+      </label>
+      <button id="bench-run" class="primary">Run benchmark</button>
+    </div>
+    <p class="status" id="bench-status" role="status"></p>
+    <div class="charts">
+      <div class="chartbox" id="chart-time"></div>
+      <div class="chartbox" id="chart-cmp"></div>
+    </div>
+    <h3>Search cost per size</h3>
+    <div class="scroll" id="tbl-search"></div>
+    <h3>Preprocessing per size</h3>
+    <div class="scroll" id="tbl-pre"></div>
+    <p class="hint" id="bench-note">Each search workload is half existing and half missing registration numbers. Timings repeat the searches for at least 40 ms and report the average per search. Linear search timing uses fewer searches at large sizes because each one scans up to a million records. Linear comparison counts come from each record's stored position (position + 1 for a hit, n for a miss).</p>
+  </section>
+
+  <!-- LOAD -->
+  <section id="p-load" role="tabpanel" aria-labelledby="t-load" class="panel" hidden>
+    <h2>Day-4 scenario: sustained searches, one update a day</h2>
+    <div class="row">
+      <label class="f" for="ld-rate">Searches per hour
+        <input id="ld-rate" type="number" min="1" step="1000" value="50000" style="width:150px">
+      </label>
+      <label class="f" for="ld-size">Records
+        <select id="ld-size">
+          <option value="1000">1,000</option>
+          <option value="10000">10,000</option>
+          <option value="100000">100,000</option>
+          <option value="1000000" selected>1,000,000</option>
+        </select>
+      </label>
+      <label class="f" for="ld-new">New records per day
+        <input id="ld-new" type="number" min="1" step="1000" value="10000" style="width:150px">
+      </label>
+    </div>
+    <p class="status" id="ld-status" role="status"></p>
+    <div id="ld-out"></div>
+  </section>
+
+  <!-- THEORY -->
+  <section id="p-theory" role="tabpanel" aria-labelledby="t-theory" class="panel" hidden>
+    <h2>Does the experiment match the derived formulas?</h2>
+    <div class="two">
+      <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+        <h3>Binary search recurrence</h3>
+        <div class="formula">T(n) = T(⌊n/2⌋) + 1,  T(0) = 0
+a = 1 call, b = 2, f(n) = Θ(1)
+n^(log_b a) = n⁰ = 1 = Θ(f(n))   →  Master Theorem, case 2
+T(n) = ⌊log₂ n⌋ + 1 = Θ(log n)</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+        <h3>Expected comparisons per successful search</h3>
+        <div class="formula">Linear   (n + 1) / 2
+Binary   ≈ log₂ n − 1
+Hash     ≈ 1 + α/2 − α/(2n),  α = n/m ≤ 1</div>
+      </div>
+    </div>
+    <h3>Observed (predicted) comparisons per hit</h3>
+    <div class="scroll" id="th-table"></div>
+    <div id="th-extra"></div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Algorithm</th><th>Design strategy</th><th>Worst case per search</th><th>Preprocessing</th><th>Total for q searches</th></tr></thead>
+        <tbody>
+          <tr><td><span class="sw" style="--c:var(--c-lin)"></span> Linear</td><td>Brute force, iterative</td><td class="mono">Θ(n)</td><td class="mono">none</td><td class="mono">Θ(q·n)</td></tr>
+          <tr><td><span class="sw" style="--c:var(--c-bin)"></span> Binary</td><td>Decrease and conquer, recursive</td><td class="mono">Θ(log n)</td><td class="mono">Θ(n log n) sort</td><td class="mono">Θ((n + q) log n)</td></tr>
+          <tr><td><span class="sw tri" style="--c:var(--c-hash)"></span> Hash</td><td>Transform and conquer, iterative</td><td class="mono">Θ(n) if all keys collide; Θ(1) expected</td><td class="mono">Θ(n) build</td><td class="mono">Θ(n + q) expected</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
